@@ -83,7 +83,6 @@ const getMatchesFromEmbeddings = async (embeddings: number[], topK: number, name
   // Get the namespace
   const pineconeNamespace = index.namespace(namespace ?? '')
 
-
   try {
     // Query the index with the defined request
     const queryResult = await pineconeNamespace.query({
