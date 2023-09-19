@@ -1,12 +1,10 @@
 import { getEmbeddings } from "@/utils/embeddings";
 import { Document, MarkdownTextSplitter, RecursiveCharacterTextSplitter } from "@pinecone-database/doc-splitter";
-import { utils as PineconeUtils, Vector } from "@pinecone-database/pinecone";
+import { Pinecone, PineconeRecord } from "@pinecone-database/pinecone";
 import md5 from "md5";
-import { getPineconeClient } from "@/utils/pinecone";
 import { Crawler, Page } from "./crawler";
 import { truncateStringByBytes } from "@/utils/truncateString"
-
-const { chunkedUpsert, createIndexIfNotExists } = PineconeUtils
+import { chunkedUpsert, createIndexIfNotExists } from "@/utils/pinecone";
 
 interface SeedOptions {
   splittingMethod: string
@@ -20,7 +18,7 @@ type DocumentSplitter = RecursiveCharacterTextSplitter | MarkdownTextSplitter
 async function seed(url: string, limit: number, indexName: string, options: SeedOptions) {
   try {
     // Initialize the Pinecone client
-    const pinecone = await getPineconeClient();
+    const pinecone = new Pinecone()
 
     // Destructure the options object
     const { splittingMethod, chunkSize, chunkOverlap } = options;
@@ -42,10 +40,10 @@ async function seed(url: string, limit: number, indexName: string, options: Seed
     await createIndexIfNotExists(pinecone!, indexName, 1536);
     const index = pinecone && pinecone.Index(indexName);
 
-    // Get the vector embeddings for the documents
+    // Get the record embeddings for the documents
     const vectors = await Promise.all(documents.flat().map(embedDocument));
 
-    // Upsert vectors into the Pinecone index
+    // Upsert records into the Pinecone index
     await chunkedUpsert(index!, vectors, '', 10);
 
     // Return the first document
@@ -56,7 +54,7 @@ async function seed(url: string, limit: number, indexName: string, options: Seed
   }
 }
 
-async function embedDocument(doc: Document): Promise<Vector> {
+async function embedDocument(doc: Document): Promise<PineconeRecord> {
   try {
     // Generate OpenAI embeddings for the document content
     const embedding = await getEmbeddings(doc.pageContent);
@@ -74,7 +72,7 @@ async function embedDocument(doc: Document): Promise<Vector> {
         url: doc.metadata.url as string, // The URL where the document was found
         hash: doc.metadata.hash as string // The hash of the document content
       }
-    } as Vector;
+    } as PineconeRecord;
   } catch (error) {
     console.log("Error embedding document: ", error)
     throw error

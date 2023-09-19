@@ -386,23 +386,30 @@ Now our backend is able to crawl a given URL, embed the content and index the em
 
 ### Get matches from embeddings
 
-To retrieve the most relevant documents from the index, we'll use the `query` function in the Pinecone SDK. This function takes a vector and returns the most similar vectors from the index. We'll use this function to retrieve the most relevant documents from the index, given some embeddings.
+To retrieve the most relevant documents from the index, we'll use the `query` function in the Pinecone SDK. This function takes a record and returns the most similar records from the index. We'll use this function to retrieve the most relevant documents from the index, given some embeddings.
 
 ```ts
 const getMatchesFromEmbeddings = async (
-  embeddings: number[],
-  topK: number,
+  embeddings: number[], 
+  topK: number, 
   namespace: string
 ): Promise<ScoredPineconeRecord[]> => {
   // Obtain a client for Pinecone
-  const pinecone = await getPineconeClient();
+  const pinecone = new Pinecone();
 
   // Retrieve the list of indexes
-  const indexes = await pinecone.listIndexes();
+  const indexes = await pinecone.listIndexes()
+
+  let exists = false
+  for (const index of indexes) {
+    if (index.name === process.env.PINECONE_INDEX!) {
+      exists = true
+    }
+  }
 
   // Check if the desired index is present, else throw an error
-  if (!indexes.includes(process.env.PINECONE_INDEX!)) {
-    throw new Error(`Index ${process.env.PINECONE_INDEX} does not exist`);
+  if (!exists) {
+    throw (new Error(`Index ${process.env.PINECONE_INDEX} does not exist`))
   }
 
   // Get the Pinecone index
@@ -420,8 +427,8 @@ const getMatchesFromEmbeddings = async (
     return queryResult.matches || [];
   } catch (e) {
     // Log the error and throw it
-    console.log("Error querying embeddings: ", e);
-    throw new Error(`Error querying embeddings: ${e}`);
+    console.log("Error querying embeddings: ", e)
+    throw (new Error(`Error querying embeddings: ${e}`,))
   }
 };
 ```
